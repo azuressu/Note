@@ -4,15 +4,41 @@ import com.sparta.memo.dto.MemoRequestDto;
 import com.sparta.memo.dto.MemoResponseDto;
 import com.sparta.memo.entity.Memo;
 import com.sparta.memo.repository.MemoRepository;
+import lombok.RequiredArgsConstructor;
+import org.apache.catalina.core.ApplicationContext;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
 
 import java.util.List;
 
-public class MemoService {
+@Service // Bean으로 등록됨 (Bean 객체로 등록되는 것)
+           // 일반 class를 spring이 관리하는 객체로 등록하는 방법
+public class MemoService { // memoService 라는 이름으로 등록이 됨
+    @Autowired
     private final MemoRepository memoRepository;
 
+//    @Autowired
+//    public void setDi(MemoRepository memoRepository) {
+//        this.memoRepository = memoRepository;
+//    }
+
+    @Autowired //가 생략이 가능하게 됨. 단 생성자 선언이 하나일 경우만 가능
     public MemoService(MemoRepository memoRepository) {
         this.memoRepository = memoRepository;
+        // 이 생성자 없이 @RequiredArgsConstructor를 붙일 수도 있지만, 여기서는 생성자로 사용
     }
+
+    // bean에서 받아오기
+//    public MemoService(ApplicationContext context) {
+//        // 1. Bean의 이름으로 가져오는 방법
+//       MemoRepository memoRepository = (MemoRepository) context.getBean("memoRepository");
+//
+//        // 2. Bean 클래스 형식으로 가져오기
+//        MemoRepository memoRepository = context.getBean(MemoRepository.class);
+//        this.memoRepository = memoRepository;
+//    }
+
     // 데이터를 반환 ..? 하는 부분 ?
     public MemoResponseDto createMemo(MemoRequestDto requestDto) {
         // RequestDto -> Entity

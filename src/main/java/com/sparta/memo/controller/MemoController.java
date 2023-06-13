@@ -12,7 +12,6 @@ import java.util.List;
 public class MemoController {
 
     // 제어의 흐름: MemoController -> MemoService -> MemoRepository
-
     private final MemoService memoService;
 
     public MemoController(MemoService memoService) {
