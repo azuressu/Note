@@ -12,39 +12,32 @@ import java.util.List;
 @RequestMapping("/api")
 public class MemoController {
 
-    private final JdbcTemplate jdbcTemplate;
+    private final MemoService memoService;
 
     public MemoController(JdbcTemplate jdbcTemplate) {
-        this.jdbcTemplate = jdbcTemplate;
+        this.memoService = new MemoService(jdbcTemplate);
     }
 
     @PostMapping("/memos")
     public MemoResponseDto createMemo(@RequestBody MemoRequestDto requestDto) {
 
         // 객체간 이동할 때, 다른 클래스의 메소드를 호출하려면 인스턴스화를 시켜야 함
-        MemoService memoService = new MemoService(jdbcTemplate);
         return memoService.createMemo(requestDto); // 해당 메소드를 만들어서 사용할 것임 (컨트롤러의 메소드 명과 서비스 메소드 명을 일치시키는 편)
         // 완료가 된 결과를 전달받은 다음에 바로 리턴해줄 것임
     }
 
     @GetMapping("/memos")
     public List<MemoResponseDto> getMemos() {
-        MemoService memoService = new MemoService(jdbcTemplate);
-
         return memoService.getMemos();
     }
 
     @PutMapping("/memos/{id}")
     public Long updateMemo(@PathVariable Long id, @RequestBody MemoRequestDto requestDto) {
-        MemoService memoService = new MemoService(jdbcTemplate);
-
         return memoService.updateMemo(id, requestDto);
     }
 
     @DeleteMapping("/memos/{id}")
     public Long deleteMemo(@PathVariable Long id) {
-        MemoService memoService = new MemoService(jdbcTemplate);
-
         return memoService.deleteMemo(id);
     }
 
