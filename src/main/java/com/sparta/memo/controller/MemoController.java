@@ -3,72 +3,118 @@ package com.sparta.memo.controller;
 import com.sparta.memo.dto.MemoRequestDto;
 import com.sparta.memo.dto.MemoResponseDto;
 import com.sparta.memo.entity.Memo;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.RowMapper;
+import org.springframework.jdbc.support.GeneratedKeyHolder;
+import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.*;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.util.List;
 
-@RestController // html을 따로 반환하지 않기 때문
+@RestController
 @RequestMapping("/api")
 public class MemoController {
 
-    // Map 자료구조 사용
-    private final Map<Long, Memo> memoList = new HashMap<>();
+    private final JdbcTemplate jdbcTemplate;
+
+    public MemoController(JdbcTemplate jdbcTemplate) {
+        this.jdbcTemplate = jdbcTemplate;
+    }
 
     @PostMapping("/memos")
     public MemoResponseDto createMemo(@RequestBody MemoRequestDto requestDto) {
-        // RequestDto -> Entity로 변경하기 (저장해야 하기 때문에)
+        // RequestDto -> Entity
         Memo memo = new Memo(requestDto);
 
-        // Memo의 Max ID를 찾아야 함 (id값으로 Memo를 구분하는데, 중복이 되면 안되고, 현재 데이터베이스에 마지막 값을 구해서 +1을 하면 max id 만들기)
-        // memoList.keySet을 해주면 앞의 값 즉 여기서는 Long의 값을 가져옴 - 그 중에서도 max를 가져오는 것임
-        Long maxId = memoList.size() > 0 ? Collections.max(memoList.keySet()) + 1 : 1;
-        memo.setId(maxId);
         // DB 저장
-        memoList.put(memo.getId(), memo);
+        KeyHolder keyHolder = new GeneratedKeyHolder(); // 기본 키를 반환받기 위한 객체
 
-        // Entity -> ResponseDto로 변경
+        String sql = "INSERT INTO memo (username, contents) VALUES (?, ?)";    // insert문은 항상 값이 바뀌게 될 것. 동적인 처리를 위한 ? 삽입
+        jdbcTemplate.update( con -> { // insert, update, delete 모두 update 메소드를 사용하여 요청하게 됨
+                    PreparedStatement preparedStatement = con.prepareStatement(sql,
+                            Statement.RETURN_GENERATED_KEYS);
+
+                    preparedStatement.setString(1, memo.getUsername()); // 첫 번째 물음표
+                    preparedStatement.setString(2, memo.getContents()); // 두 번째 물음표
+                    return preparedStatement;
+                },
+                keyHolder);
+
+        // DB Insert 후 받아온 기본키 확인
+        Long id = keyHolder.getKey().longValue();
+        memo.setId(id);
+
+        // Entity -> ResponseDto
         MemoResponseDto memoResponseDto = new MemoResponseDto(memo);
 
         return memoResponseDto;
     }
 
     @GetMapping("/memos")
-    public List<MemoResponseDto> getMemos() { // list인 이유는 메모가 하나일 수는 없기 때문 !
-        // Map to List
-        List<MemoResponseDto> responseList = memoList.values().stream()
-                .map(MemoResponseDto::new).toList(); // :: new를 하면 생성자(Memo를 파라미터로 갖는)가 사용됨
+    public List<MemoResponseDto> getMemos() {
+        // DB 조회
+        String sql = "SELECT * FROM memo";
 
-        return responseList;
+        return jdbcTemplate.query(sql, new RowMapper<MemoResponseDto>() {
+            @Override
+            public MemoResponseDto mapRow(ResultSet rs, int rowNum) throws SQLException {
+                // SQL 의 결과로 받아온 Memo 데이터들을 MemoResponseDto 타입으로 변환해줄 메서드
+                Long id = rs.getLong("id");
+                String username = rs.getString("username");
+                String contents = rs.getString("contents");
+                return new MemoResponseDto(id, username, contents);    // 새로운 객체를 만듦
+            }
+        });
     }
 
-    @PutMapping("/memos/{id}") // path valuable 방식
+    @PutMapping("/memos/{id}")
     public Long updateMemo(@PathVariable Long id, @RequestBody MemoRequestDto requestDto) {
-        // 업데이트할 메모의 id, 수정할 내용을 requestbody로 받아옴
-        // 메모가 실제로 DB에 존재하는지 확인하기
-        if (memoList.containsKey(id)) {
-            // 해당 메모를 가져오기
-            Memo memo = memoList.get(id); // map 자료구조에서 그 id에 맞는 메모 객체가 반환될 것임
+        // 해당 메모가 DB에 존재하는지 확인
+        Memo memo = findById(id);
+        if(memo != null) {
+            // memo 내용 수정
+            String sql = "UPDATE memo SET username = ?, contents = ? WHERE id = ?";
+            jdbcTemplate.update(sql, requestDto.getUsername(), requestDto.getContents(), id); // 물음표의 순서대로 데이터를 넣어줌
 
-            // 가져온 메모를 수정하기
-            memo.update(requestDto);
-
-            return memo.getId(); // 혹은 return id; 도 가능
+            return id;
         } else {
-            throw new IllegalArgumentException("선택한 메모는 존재하지 않습니다/");
+            throw new IllegalArgumentException("선택한 메모는 존재하지 않습니다.");
         }
     }
 
     @DeleteMapping("/memos/{id}")
-    public Long deleteMemo(@PathVariable Long id) { // 지우는 것이니 RequestDto는 필요없음
-        // 해당 메모가 데이터베이스에 존재하는지 확인하기
-        if (memoList.containsKey(id)) {
-            // 해당 메모를 삭제하기 (key를 넣어주면 가능)
-            memoList.remove(id);
+    public Long deleteMemo(@PathVariable Long id) {
+        // 해당 메모가 DB에 존재하는지 확인
+        Memo memo = findById(id);
+        if(memo != null) {
+            // memo 삭제
+            String sql = "DELETE FROM memo WHERE id = ?"; // 물음표에 넣어주면 됨
+            jdbcTemplate.update(sql, id);
+
             return id;
         } else {
-            throw new IllegalArgumentException("선택한 메모는 존재하지 않습니다");
+            throw new IllegalArgumentException("선택한 메모는 존재하지 않습니다.");
         }
     }
 
+    // 중복되는 코드는 메소드로 따로 빼놓음 (데이터 베이스에 존재하는지 판별하는 기능)
+    private Memo findById(Long id) {
+        // DB 조회
+        String sql = "SELECT * FROM memo WHERE id = ?";
 
+        return jdbcTemplate.query(sql, resultSet -> {
+            if(resultSet.next()) {
+                Memo memo = new Memo();
+                memo.setUsername(resultSet.getString("username"));
+                memo.setContents(resultSet.getString("contents"));
+                return memo;
+            } else {
+                return null;
+            }
+        }, id);
+    }
 }
