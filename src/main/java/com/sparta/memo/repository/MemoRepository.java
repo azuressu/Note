@@ -3,11 +3,12 @@ package com.sparta.memo.repository;
 import com.sparta.memo.dto.MemoRequestDto;
 import com.sparta.memo.dto.MemoResponseDto;
 import com.sparta.memo.entity.Memo;
+import jakarta.persistence.EntityManager;
+import jakarta.transaction.Transactional;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.jdbc.support.KeyHolder;
-import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Repository;
 
 import java.sql.PreparedStatement;
@@ -91,6 +92,20 @@ public class MemoRepository { // 마찬가지로 이름이 memoRepository로 저
             }
         }, id);
     } // findById()
+
+    @Transactional
+    public Memo createMemo(EntityManager em) {
+        // 1번을 하나 가져옴
+        Memo memo = em.find(Memo.class, 1);
+        // Transactional을 붙였으므로 Dirty Checking을 통해 Update 쿼리 실행을 예측해 볼 수 있음
+        memo.setUsername("Robbiert");
+        memo.setContents("@Transactional 전파 테스트 중! 2");
+
+        System.out.println("createMemo 메서드 종료");
+        // 부모 메서드에서 @Transactional, @Rollback(value = false)를 지워주면
+        // 여기서 update를 실행하고 다시 부모로 돌아감
+        return memo;
+    }
 
 
 
