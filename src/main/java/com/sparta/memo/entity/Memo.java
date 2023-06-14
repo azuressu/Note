@@ -25,6 +25,8 @@ public class Memo {
         this.contents = requestDto.getContents();
     }
 
+    // update 만듦
+    // username이랑 contents를 변경함
     public void update(MemoRequestDto requestDto) {
         this.username = requestDto.getUsername();
         this.contents = requestDto.getContents();

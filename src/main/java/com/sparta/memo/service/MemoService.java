@@ -4,6 +4,7 @@ import com.sparta.memo.dto.MemoRequestDto;
 import com.sparta.memo.dto.MemoResponseDto;
 import com.sparta.memo.entity.Memo;
 import com.sparta.memo.repository.MemoRepository;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.apache.catalina.core.ApplicationContext;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -55,31 +56,36 @@ public class MemoService { // memoService 라는 이름으로 등록이 됨
 
     public List<MemoResponseDto> getMemos() {
         // DB 조회
-        return memoRepository.findAll(); // 전달해주는 파라미터 필요없음
+        return memoRepository.findAll().stream().map(MemoResponseDto::new).toList(); // 전달해주는 파라미터 필요없음
     }
 
+    @Transactional
+    // update에는 적용해주어야 함
     public Long updateMemo(Long id, MemoRequestDto requestDto) {
         // 해당 메모가 DB에 존재하는지 확인
-        Memo memo = memoRepository.findById(id);  // 접근 제어자 주의하기
-        if(memo != null) {
-            // memo 내용 수정
-            memoRepository.update(id, requestDto);
-            return id;
-        } else {
-            throw new IllegalArgumentException("선택한 메모는 존재하지 않습니다.");
-        }
+        Memo memo = findMemo(id);
+
+        // memo 내용 수정
+        memo.update(requestDto);
+        return id;
+
     } // updateMemo
 
     public Long deleteMemo(Long id) {
+        // 1. 지울 메모를 가져온다
         // 해당 메모가 DB에 존재하는지 확인
-        Memo memo = memoRepository.findById(id);
-        if(memo != null) {
-            // memo 삭제
-            memoRepository.delete(id);
-            return id;
-        } else {
-            throw new IllegalArgumentException("선택한 메모는 존재하지 않습니다.");
-        }
+        Memo memo = findMemo(id);
+        // 2. 지울 entity 객체를 파라미터로 전달한다
+        // memo 삭제
+        memoRepository.delete(memo);
+        return id;
+
     } // deleteMemo
+
+    private Memo findMemo(Long id) {
+        return memoRepository.findById(id).orElseThrow(() ->
+                new IllegalArgumentException("선택한 메모는 존재하지 않습니다.")
+        );  // 접근 제어자 주의하기
+    }
 
 }
