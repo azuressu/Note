@@ -26,6 +26,11 @@ public class MemoController {
         // 완료가 된 결과를 전달받은 다음에 바로 리턴해줄 것임
     }
 
+    @GetMapping("/memos/contents") //
+    public List<MemoResponseDto> getMemosByKeyword(String keyword) {
+        return memoService.getMemoByKeyword(keyword);
+    }
+
     @GetMapping("/memos")
     public List<MemoResponseDto> getMemos() {
         return memoService.getMemos();

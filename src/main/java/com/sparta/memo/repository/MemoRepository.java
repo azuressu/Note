@@ -10,6 +10,7 @@ public interface MemoRepository extends JpaRepository<Memo, Long> { // 마찬가
 
     // 모든 메모들을 수정된 시간을 기준으로 정렬됨
     List<Memo> findAllByOrderByModifiedAtDesc();
+    List<Memo> findAllByContentsContainsOrderByModifiedAtDesc(String keyword);
 
 
     // Username이 ~ 인 것만 가져와라

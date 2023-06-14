@@ -58,7 +58,11 @@ public class MemoService { // memoService 라는 이름으로 등록이 됨
         // DB 조회
 //        return memoRepository.findAll().stream().map(MemoResponseDto::new).toList(); // 전달해주는 파라미터 필요없음
         return memoRepository.findAllByOrderByModifiedAtDesc().stream().map(MemoResponseDto::new).toList();
-    }
+    } // getMemos()
+
+    public List<MemoResponseDto> getMemoByKeyword(String keyword) {
+        return memoRepository.findAllByContentsContainsOrderByModifiedAtDesc(keyword).stream().map(MemoResponseDto::new).toList();
+    } // getMemoByKeyword()
 
     @Transactional
     // update에는 적용해주어야 함
@@ -88,5 +92,4 @@ public class MemoService { // memoService 라는 이름으로 등록이 됨
                 new IllegalArgumentException("선택한 메모는 존재하지 않습니다.")
         );  // 접근 제어자 주의하기
     }
-
 }
