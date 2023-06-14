@@ -56,7 +56,8 @@ public class MemoService { // memoService 라는 이름으로 등록이 됨
 
     public List<MemoResponseDto> getMemos() {
         // DB 조회
-        return memoRepository.findAll().stream().map(MemoResponseDto::new).toList(); // 전달해주는 파라미터 필요없음
+//        return memoRepository.findAll().stream().map(MemoResponseDto::new).toList(); // 전달해주는 파라미터 필요없음
+        return memoRepository.findAllByOrderByModifiedAtDesc().stream().map(MemoResponseDto::new).toList();
     }
 
     @Transactional
